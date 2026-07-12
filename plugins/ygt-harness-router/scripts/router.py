@@ -115,19 +115,28 @@ def route(payload: dict[str, Any]) -> RouteDecision:
         score = 65
         reasons.append("insufficient assessment defaults to Sol rather than guessing a cheaper lane")
 
-    forced_sol = task["production"] or task["security_sensitive"] or task["evidence_conflict"]
+    forced_sol = (
+        task["production"] or task["security_sensitive"] or task["evidence_conflict"]
+        or task["risk"] >= 15 or task["failure_cost"] >= 8
+    )
     if forced_sol:
         score = max(score, 70)
         reasons.append("high-impact or conflict-sensitive work requires frontier judgment")
     if task["failed_gate"]:
         score = max(score, 65)
         reasons.append("a failed mandatory gate requires focused diagnosis before retry")
-    if task["writes"] and not forced_sol:
+    eligible_luna_write = (
+        task["writes"] and task["clear_done"] and 1 <= task["estimated_files"] <= 3
+        and score < 30 and task["risk"] <= 5 and task["failure_cost"] <= 3
+        and task["task_type"] == "luna_write"
+        and not forced_sol and not task["failed_gate"]
+    )
+    if task["writes"] and not forced_sol and not eligible_luna_write:
         score = max(score, 30)
         reasons.append("workspace mutation requires a write-capable lane")
 
     if score >= 65:
-        model, agent = "gpt-5.6-sol", "sol-specialist"
+        model, agent = "gpt-5.6-sol", "sol-owner" if task["writes"] else "sol-specialist"
         effort = "xhigh" if score >= 85 else "high"
         budget_class = "large"
     elif score >= 30:
@@ -135,11 +144,14 @@ def route(payload: dict[str, Any]) -> RouteDecision:
         effort = "high" if score >= 50 else "medium"
         budget_class = "medium"
     else:
-        model, agent = "gpt-5.6-luna", "luna-explorer"
+        model, agent = "gpt-5.6-luna", "luna-worker" if eligible_luna_write else "luna-explorer"
         effort = "xhigh"
         budget_class = "small"
 
-    if task["clear_done"] and task["repeatable"] and not forced_sol and not task["writes"] and score < 40:
+    if eligible_luna_write:
+        model, agent, effort, budget_class = "gpt-5.6-luna", "luna-worker", "xhigh", "small"
+        reasons.append("clear low-risk write across at most three files fits the direct Luna lane")
+    elif task["clear_done"] and task["repeatable"] and not forced_sol and not task["writes"] and score < 40:
         model, agent, effort, budget_class = "gpt-5.6-luna", "luna-explorer", "xhigh", "small"
         reasons.append("clear repeatable contract fits the efficient lane")
     elif model == "gpt-5.6-terra":

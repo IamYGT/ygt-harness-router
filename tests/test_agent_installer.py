@@ -21,7 +21,7 @@ class AgentInstallerTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             target = Path(folder) / "agents"
             actions = MODULE.install(target, apply=False, force=False)
-            self.assertEqual(len(actions), 4)
+            self.assertEqual(len(actions), 6)
             self.assertFalse(target.exists())
 
     def test_apply_installs_all_bundled_agents(self) -> None:
@@ -33,6 +33,8 @@ class AgentInstallerTest(unittest.TestCase):
                 [
                     "luna-challenger.toml",
                     "luna-explorer.toml",
+                    "luna-worker.toml",
+                    "sol-owner.toml",
                     "sol-specialist.toml",
                     "terra-worker.toml",
                 ],

@@ -41,6 +41,11 @@ Every non-trivial task should have:
 Cheap intake is intentional. Do not spend a full reasoning turn classifying a
 one-line command.
 
+The pre-session launcher is the enforcement point. A prompt arriving inside an
+already-open Sol session cannot retroactively become a direct Luna session.
+`scripts/route_exec.py` therefore performs deterministic local intake before
+`codex exec`, passes the prompt on stdin, and opens exactly one routed process.
+
 ## Context strategy
 
 Context tooling is selected independently from model and delegation. Serena is a

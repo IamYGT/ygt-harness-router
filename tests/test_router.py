@@ -42,12 +42,42 @@ class RouterContractTest(unittest.TestCase):
         self.assertEqual(result.model, "gpt-5.6-terra")
         self.assertEqual(result.agent, "terra-worker")
 
-    def test_even_clear_writes_never_route_to_read_only_luna(self) -> None:
+    def test_unknown_write_scope_routes_to_terra_not_read_only_luna(self) -> None:
         result = router.route({"clear_done": True, "repeatable": True, "writes": True,
-                               "ambiguity": 1, "risk": 1})
+                               "ambiguity": 1, "risk": 1, "estimated_files": 0})
         self.assertEqual(result.model, "gpt-5.6-terra")
         self.assertEqual(result.agent, "terra-worker")
         self.assertIn("write-capable lane", " ".join(result.reasons))
+
+    def test_small_clear_write_defaults_to_benchmark_winning_terra(self) -> None:
+        result = router.route({"clear_done": True, "writes": True, "estimated_files": 3,
+                               "ambiguity": 2, "risk": 2, "integration": 3, "judgment": 2,
+                               "failure_cost": 2, "clarity_gap": 2, "repeatability_gap": 1})
+        self.assertEqual(result.model, "gpt-5.6-terra")
+        self.assertEqual(result.agent, "terra-worker")
+        self.assertEqual(result.reasoning_effort, "medium")
+        self.assertEqual(result.context_strategy, "base")
+
+    def test_explicit_luna_write_route_uses_write_capable_luna(self) -> None:
+        result = router.route({"clear_done": True, "writes": True, "estimated_files": 3,
+                               "ambiguity": 2, "risk": 2, "integration": 3, "judgment": 2,
+                               "failure_cost": 2, "clarity_gap": 2, "repeatability_gap": 1,
+                               "task_type": "luna_write"})
+        self.assertEqual(result.model, "gpt-5.6-luna")
+        self.assertEqual(result.agent, "luna-worker")
+        self.assertEqual(result.reasoning_effort, "xhigh")
+
+    def test_write_scope_over_three_files_routes_to_terra(self) -> None:
+        result = router.route({"clear_done": True, "writes": True, "estimated_files": 4,
+                               "ambiguity": 2, "risk": 2})
+        self.assertEqual(result.model, "gpt-5.6-terra")
+        self.assertEqual(result.agent, "terra-worker")
+
+    def test_failed_gate_never_routes_to_luna_worker(self) -> None:
+        result = router.route({"clear_done": True, "writes": True, "estimated_files": 1,
+                               "failed_gate": True, "task_type": "luna_write"})
+        self.assertEqual(result.model, "gpt-5.6-sol")
+        self.assertNotEqual(result.agent, "luna-worker")
 
     def test_security_and_production_force_sol(self) -> None:
         for key in ("security_sensitive", "production", "evidence_conflict"):

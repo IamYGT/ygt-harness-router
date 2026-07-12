@@ -17,6 +17,8 @@ The plugin provides a repeatable operating contract around Codex work:
 
 - score a task before delegation using clarity, parallel gain, verification,
   handoff, uncertainty, and reasoning needs;
+- route the initial prompt before Codex starts so a bounded write can run
+  directly on Luna instead of paying for a Sol root and child handoff;
 - route bounded work to a focused lane (for example, an explorer, workhorse,
   or specialist) instead of recursively fanning out by default;
 - carry a compact receipt between parent and child work so the next step can be
@@ -119,7 +121,7 @@ The local path must contain both `.agents/plugins/marketplace.json` and
 ### Install the optional custom agents
 
 Codex discovers personal custom agents from `~/.codex/agents/`. The plugin keeps
-its four role definitions inside the package so installation never overwrites
+its six role definitions inside the package so installation never overwrites
 personal configuration implicitly. Preview the operation first, then apply it:
 
 ```bash
@@ -130,6 +132,31 @@ python3 plugins/ygt-harness-router/scripts/install_agents.py --apply
 Existing files are refused by default. Use `--force` only after review; the
 installer creates a timestamped backup before replacement. Restart Codex after
 installing or updating agent files.
+
+### Pre-session launcher
+
+Model routing only saves time when it happens before the session starts. The
+launcher performs a local deterministic intake, selects model/context/sandbox,
+and passes the prompt to Codex over stdin:
+
+```bash
+python3 plugins/ygt-harness-router/scripts/route_exec.py \
+  --cwd /path/to/project \
+  "Update this single login field and its focused test"
+```
+
+Preview without starting Codex:
+
+```bash
+python3 plugins/ygt-harness-router/scripts/route_exec.py \
+  --cwd /path/to/project --dry-run "Update this single login field"
+```
+
+Clear low-risk writes across one to three estimated files route to
+`gpt-5.6-terra` medium with `workspace-write`, no subagent, and no context MCP
+startup. A five-sample matched benchmark found Terra faster and lower-token than
+Luna xhigh for this contract. Luna write remains available explicitly with
+`--task-json '{"task_type":"luna_write"}'`.
 
 ## First run
 

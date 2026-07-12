@@ -22,8 +22,10 @@ EXPECTED_SKILLS = {
 EXPECTED_AGENTS = {
     "luna-explorer": ("gpt-5.6-luna", "xhigh", "read-only"),
     "luna-challenger": ("gpt-5.6-luna", "max", "read-only"),
+    "luna-worker": ("gpt-5.6-luna", "xhigh", "workspace-write"),
     "terra-worker": ("gpt-5.6-terra", "high", "workspace-write"),
     "sol-specialist": ("gpt-5.6-sol", "high", "read-only"),
+    "sol-owner": ("gpt-5.6-sol", "high", "workspace-write"),
 }
 
 
