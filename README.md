@@ -246,7 +246,7 @@ full boundary and reporting process.
 From the repository root:
 
 ```bash
-python -m pytest -q
+python -m unittest discover -s tests -v
 python -m json.tool plugins/ygt-harness-router/.codex-plugin/plugin.json >/dev/null
 python -m json.tool .agents/plugins/marketplace.json >/dev/null
 git diff --check

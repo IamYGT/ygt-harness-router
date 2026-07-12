@@ -83,7 +83,8 @@ class PublicDocsContractTests(unittest.TestCase):
 
     def test_ci_is_public_path_independent(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertIn("python -m pytest -q", workflow)
+        self.assertIn("python -m unittest discover -s tests -v", workflow)
+        self.assertNotIn("pip install", workflow)
         self.assertIn("plugins/ygt-harness-router", workflow)
         self.assertNotIn("/root/", workflow)
         self.assertNotIn("/opt/codex-harness", workflow)
