@@ -66,6 +66,7 @@ def proxy_app_server(real: str, args: list[str]) -> int:
     def forward_signal(signum, _frame) -> None:
         if child.poll() is None:
             child.send_signal(signum)
+        raise SystemExit(128 + signum)
 
     for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
         previous_handlers[signum] = signal.signal(signum, forward_signal)
