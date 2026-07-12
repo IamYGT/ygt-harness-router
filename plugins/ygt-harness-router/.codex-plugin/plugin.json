@@ -1,0 +1,29 @@
+{
+  "name": "ygt-harness-router",
+  "version": "0.1.0",
+  "description": "Quality-first Sol, Terra, and Luna routing with token budgets, lifecycle hooks, and evidence-led handoffs.",
+  "author": {
+    "name": "YGT Labs AI",
+    "url": "https://github.com/IamYGT"
+  },
+  "homepage": "https://github.com/IamYGT/ygt-harness-router#readme",
+  "repository": "https://github.com/IamYGT/ygt-harness-router",
+  "license": "MIT",
+  "keywords": ["codex", "gpt-5.6", "multi-agent", "model-routing", "token-budget", "observability"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "YGT Harness Router",
+    "shortDescription": "Route Codex work across Sol, Terra, and Luna with evidence-based budgets.",
+    "longDescription": "Adds deterministic capability scoring, bounded subagent roles, rollout-budget templates, context handoffs, privacy-bounded telemetry, and lifecycle hooks without optimizing cost at the expense of quality.",
+    "developerName": "YGT Labs AI",
+    "category": "Productivity",
+    "capabilities": ["Model routing", "Multi-agent orchestration", "Token budgets", "Lifecycle telemetry"],
+    "websiteURL": "https://github.com/IamYGT/ygt-harness-router",
+    "defaultPrompt": [
+      "Route this task to Sol, Terra, or Luna and explain the quality gate.",
+      "Create a compact engineering handoff before this context grows further.",
+      "Audit this session for duplicate work and token concentration."
+    ],
+    "brandColor": "#6D7CFF"
+  }
+}

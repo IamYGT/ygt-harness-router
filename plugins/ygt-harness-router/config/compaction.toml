@@ -1,0 +1,6 @@
+# Opt-in Codex compaction template. This file is not auto-loaded by the plugin.
+# Keep the active setting commented until reread rate and quality are measured.
+
+# model_auto_compact_token_limit = 30000000
+# model_auto_compact_token_limit_scope = "body_after_prefix"
+# compact_prompt = "Preserve objective, done contract, forbidden outcomes, changed paths, decisions, tests, blockers, and next action; omit raw logs and secrets."

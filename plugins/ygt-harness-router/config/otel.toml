@@ -1,0 +1,12 @@
+# Opt-in local OpenTelemetry template. This file is not auto-loaded by the plugin.
+# Prompt logging stays disabled and exporters are explicitly off by default.
+
+[otel]
+environment = "development"
+log_user_prompt = false
+metrics_exporter = "none"
+trace_exporter = "none"
+# When explicitly enabled, configure a trusted local collector endpoint and
+# non-secret headers out of band; do not commit credentials or bearer tokens.
+# endpoint = "http://127.0.0.1:4318"
+# protocol = "http/protobuf"

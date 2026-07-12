@@ -1,0 +1,20 @@
+{
+  "name": "ygt-harness-router",
+  "interface": {
+    "displayName": "YGT Harness Router"
+  },
+  "plugins": [
+    {
+      "name": "ygt-harness-router",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ygt-harness-router"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

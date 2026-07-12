@@ -1,0 +1,117 @@
+# Architecture
+
+YGT Harness Router is a small policy layer around native Codex execution. It
+does not replace Codex's model, sandbox, marketplace, or billing systems.
+
+## Control flow
+
+```mermaid
+flowchart LR
+    A[User objective] --> B[Intake contract]
+    B --> C[Delegation score]
+    C -->|below threshold| D[Root execution]
+    C -->|bounded parallel gain| E[Lane selection]
+    E --> F[Explorer / worker / specialist]
+    D --> G[Evidence ledger]
+    F --> G
+    G --> H{Gate passed?}
+    H -->|yes| I[Receipt + next action]
+    H -->|no| J[Diagnose or escalate]
+    J --> C
+    G --> K[Capacity signals]
+    K --> L[Continue / compact / hand off / new session]
+```
+
+## Intake contract
+
+Every non-trivial task should have:
+
+- **Objective:** what outcome is requested.
+- **Done:** an observable result and the command or readback that proves it.
+- **Scope:** files, services, or records that may be inspected or changed.
+- **Forbidden outcomes:** destructive operations, secret exposure, unrelated
+  edits, or claims that cannot be evidenced.
+- **Stop condition:** when the lane must return instead of exploring further.
+
+Cheap intake is intentional. Do not spend a full reasoning turn classifying a
+one-line command.
+
+## Delegation score
+
+The score is a routing aid with six dimensions:
+
+| Dimension | Question |
+| --- | --- |
+| Clarity | Can a child start without guessing the target or contract? |
+| Parallel gain | Is there independent work that can run at the same time? |
+| Verification | Will a second lane produce meaningful challenge or evidence? |
+| Handoff | Can the output be represented as a compact, durable receipt? |
+| Uncertainty | Is discovery or conflict resolution the dominant work? |
+| Reasoning | Does the task need architecture, security, or high-depth analysis? |
+
+High score does not mean “spawn as many agents as possible.” Thread and depth
+limits are part of the contract. A low score should stay local to avoid paying
+handoff and context overhead.
+
+## Execution lanes
+
+Deployments may name lanes differently, but the intended separation is:
+
+- **Explorer:** read-only inventory, extraction, and evidence gathering.
+- **Worker:** normal implementation inside an explicit file and test scope.
+- **Specialist:** ambiguous, architecture-sensitive, security-sensitive, or
+  failed-gate work.
+
+Each lane should declare its model, reasoning effort, sandbox, runtime, and
+allowed scope. The lane returns a structured receipt; the parent owns
+integration and final verification.
+
+## Evidence ledger
+
+The ledger records observations, not hidden reasoning:
+
+- command, tool, or test name;
+- exit status and relevant output summary;
+- changed paths and current diff state;
+- model/effort/lane metadata when available;
+- gate status and unresolved blockers;
+- child receipt and whether the parent consumed it.
+
+The same ledger can power a local dashboard or OpenTelemetry exporter. It is not
+an invoice and should not include raw secrets or prompt content by default.
+
+## Capacity decisions
+
+The router treats context as a capacity budget. At a phase boundary it may:
+
+1. continue when the current context is still useful;
+2. compact into a durable handoff when the next phase can start from a summary;
+3. hand off to a fresh child when ownership and scope are clear; or
+4. start a new session when the current context is polluted, stale, or unsafe.
+
+Compaction is a measurement point, not automatically an optimization. Compare
+the compacted context with post-compact rereads and gate outcomes before making
+the threshold global.
+
+## Failure and escalation
+
+The router should diagnose ordinary failures and retry a read-only transient
+operation at most within its configured policy. A failed lower-level test blocks
+the next validation layer. An unresolved exact target, destructive request, or
+secret boundary is an explicit stop/escalation—not a reason to substitute a
+nearby target.
+
+## Extension boundaries
+
+The plugin can integrate with:
+
+- native Codex custom agents;
+- native command hooks (`PreToolUse`, `PostToolUse`, `PreCompact`,
+  `PostCompact`, `SubagentStart`, and `SubagentStop`) when supported by the
+  installed CLI;
+- optional OpenTelemetry exporters; and
+- repository-local scripts or skills.
+
+Extensions must preserve the same receipt, privacy, and evidence contract. A
+hook that changes behavior without recording an observable event is harder to
+debug than the work it is meant to improve.

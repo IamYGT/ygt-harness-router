@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install test runner
+        run: python -m pip install --disable-pip-version-check pytest
+
+      - name: Run documentation and contract tests
+        run: python -m pytest -q
+
+      - name: Validate plugin package
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f scripts/validate_plugin.py ]]; then
+            python scripts/validate_plugin.py plugins/ygt-harness-router
+          else
+            python - <<'PY'
+          import json
+          from pathlib import Path
+
+          plugin_root = Path("plugins/ygt-harness-router")
+          manifest_path = plugin_root / ".codex-plugin/plugin.json"
+          marketplace_path = Path(".agents/plugins/marketplace.json")
+          manifest = json.loads(manifest_path.read_text())
+          marketplace = json.loads(marketplace_path.read_text())
+
+          assert manifest["name"] == plugin_root.name
+          assert manifest.get("version")
+          assert isinstance(manifest.get("interface"), dict)
+          assert isinstance(marketplace.get("plugins"), list)
+          entry = next(item for item in marketplace["plugins"] if item["name"] == plugin_root.name)
+          assert entry["source"]["path"] == f"./plugins/{plugin_root.name}"
+          assert entry["policy"]["installation"] in {"AVAILABLE", "INSTALLED_BY_DEFAULT", "NOT_AVAILABLE"}
+          assert entry["policy"]["authentication"] in {"ON_INSTALL", "ON_USE"}
+          print(f"validated {manifest_path} and marketplace entry")
+          PY
+          fi
+
+      - name: Check whitespace errors
+        run: git diff --check

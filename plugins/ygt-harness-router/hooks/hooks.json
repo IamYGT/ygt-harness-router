@@ -1,0 +1,86 @@
+{
+  "description": "Privacy-bounded telemetry, duplicate-read reminders, budget checkpoints, and subagent receipts.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/harness_hook.py\" PreToolUse",
+            "timeout": 5,
+            "statusMessage": "Checking YGT Harness Router read evidence and budget"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/harness_hook.py\" PostToolUse",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/harness_hook.py\" PreCompact",
+            "timeout": 5,
+            "statusMessage": "Writing the compaction handoff checkpoint"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/harness_hook.py\" PostCompact",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/harness_hook.py\" SubagentStart",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/harness_hook.py\" SubagentStop",
+            "timeout": 5,
+            "statusMessage": "Checking the delegated work receipt"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/harness_hook.py\" Stop",
+            "timeout": 5,
+            "statusMessage": "Checking final evidence and budget checkpoint"
+          }
+        ]
+      }
+    ]
+  }
+}
