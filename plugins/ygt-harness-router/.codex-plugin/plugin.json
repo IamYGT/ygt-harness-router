@@ -1,6 +1,6 @@
 {
   "name": "ygt-harness-router",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Quality-first Sol, Terra, and Luna routing with token budgets, lifecycle hooks, and evidence-led handoffs.",
   "author": {
     "name": "YGT Labs AI",

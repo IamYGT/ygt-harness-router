@@ -49,6 +49,9 @@ class CodexEntryRouterTest(unittest.TestCase):
         self.assertEqual(args[0], "exec")
         self.assertIn("gpt-5.6-luna", args)
         self.assertIn("--ephemeral", args)
+        self.assertIn("workspace-write", args)
+        self.assertIn("features.multi_agent=false", args)
+        self.assertIn("mcp_servers.serena.enabled=false", args)
         self.assertEqual(receipt["agent"], "luna-worker")
 
     def test_cli_stdin_routes_without_putting_prompt_in_argv(self) -> None:
@@ -64,6 +67,18 @@ class CodexEntryRouterTest(unittest.TestCase):
         self.assertIn("gpt-5.6-luna", args)
         self.assertNotIn(prompt, args)
         self.assertEqual(receipt["agent"], "luna-worker")
+
+    def test_creation_prompt_receipt_exposes_full_policy(self) -> None:
+        args, receipt = MODULE.routed_cli_args(["exec", "bir hesap makinesi yap"])
+        self.assertEqual(receipt["agent"], "luna-worker")
+        self.assertEqual(receipt["context"], "base")
+        self.assertEqual(receipt["children"], 0)
+        self.assertIn("workspace-write", args)
+
+    def test_app_server_enables_native_multi_agent_capability(self) -> None:
+        args = MODULE.app_server_args(["-c", "features.code_mode_host=true", "app-server"])
+        self.assertEqual(args[-1], "app-server")
+        self.assertIn("features.multi_agent=true", args)
 
     def test_management_and_explicit_model_are_passthrough(self) -> None:
         for args in (["plugin", "list"], ["doctor"], ["--strict-config", "doctor", "--summary"], ["exec", "-m", "gpt-5.6-sol", "task"], ["--version"]):

@@ -10,6 +10,7 @@ import subprocess
 import sys
 import threading
 from pathlib import Path
+from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
@@ -29,7 +30,17 @@ def decision(prompt: str):
     return route_exec.router.route(route_exec.classify_prompt(prompt))
 
 
-def route_turn_start_line(line: bytes) -> tuple[bytes, dict[str, str] | None]:
+def route_receipt(routed) -> dict[str, Any]:
+    return {
+        "model": routed.model,
+        "effort": routed.reasoning_effort,
+        "agent": routed.agent,
+        "context": routed.context_strategy,
+        "children": routed.max_parallel_children,
+    }
+
+
+def route_turn_start_line(line: bytes) -> tuple[bytes, dict[str, Any] | None]:
     try:
         payload = json.loads(line)
     except (UnicodeDecodeError, json.JSONDecodeError):
@@ -48,8 +59,7 @@ def route_turn_start_line(line: bytes) -> tuple[bytes, dict[str, str] | None]:
     routed = decision(prompt)
     params["model"] = routed.model
     params["effort"] = routed.reasoning_effort
-    receipt = {"model": routed.model, "effort": routed.reasoning_effort, "agent": routed.agent}
-    return (json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n").encode(), receipt
+    return (json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n").encode(), route_receipt(routed)
 
 
 def _copy(source, target) -> None:
@@ -122,7 +132,35 @@ def _command_index(args: list[str]) -> int | None:
     return None
 
 
-def routed_cli_args(args: list[str], stdin_prompt: str | None = None) -> tuple[list[str], dict[str, str] | None]:
+def app_server_args(args: list[str]) -> list[str]:
+    if any(arg == "features.multi_agent=true" for arg in args):
+        return args
+    index = args.index("app-server")
+    return [*args[:index], "-c", "features.multi_agent=true", *args[index:]]
+
+
+def policy_overrides(routed) -> list[str]:
+    sandbox = "workspace-write" if routed.agent in {"luna-worker", "terra-worker", "sol-owner"} else "read-only"
+    overrides = [
+        "-m", routed.model,
+        "-c", f'model_reasoning_effort="{routed.reasoning_effort}"',
+        "-c", 'model_verbosity="low"',
+        "-c", 'approval_policy="never"',
+        "-c", f'features.multi_agent={str(routed.max_parallel_children > 0).lower()}',
+        "-s", sandbox,
+    ]
+    if routed.context_strategy == "serena":
+        overrides += ["-p", "serena", "-c", "mcp_servers.serena.enabled=true"]
+    elif routed.context_strategy == "context-mode":
+        overrides += ["-p", "context-mode", "-c", "mcp_servers.serena.enabled=false"]
+    elif routed.context_strategy == "context-lab":
+        overrides += ["-p", "context-lab", "-c", "mcp_servers.serena.enabled=true"]
+    else:
+        overrides += ["-c", "mcp_servers.serena.enabled=false"]
+    return overrides
+
+
+def routed_cli_args(args: list[str], stdin_prompt: str | None = None) -> tuple[list[str], dict[str, Any] | None]:
     if not args:
         return ["-m", "gpt-5.6-luna", "-c", 'model_reasoning_effort="xhigh"'], {"model": "gpt-5.6-luna", "effort": "xhigh", "agent": "luna-worker"}
     command_index = _command_index(args)
@@ -137,19 +175,19 @@ def routed_cli_args(args: list[str], stdin_prompt: str | None = None) -> tuple[l
     if not prompt:
         return args, None
     routed = decision(prompt)
-    overrides = ["-m", routed.model, "-c", f'model_reasoning_effort="{routed.reasoning_effort}"']
+    overrides = policy_overrides(routed)
     if command == "exec" and command_index is not None:
         result = [*args[:command_index + 1], *overrides, *args[command_index + 1:]]
     else:
         result = [*overrides, *args]
-    return result, {"model": routed.model, "effort": routed.reasoning_effort, "agent": routed.agent}
+    return result, route_receipt(routed)
 
 
 def main() -> int:
     real = os.environ.get("YGT_CODEX_REAL", "/usr/local/bin/codex.real")
     args = sys.argv[1:]
     if "app-server" in args:
-        return proxy_app_server(real, args)
+        return proxy_app_server(real, app_server_args(args))
     stdin_prompt = None
     command_index = _command_index(args)
     if command_index is not None and args[command_index] == "exec" and (len(args) == command_index + 1 or args[-1] == "-") and not sys.stdin.isatty():

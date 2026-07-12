@@ -170,6 +170,12 @@ each `turn/start` request before inference. Non-turn, malformed, image-only,
 stdout, stderr, and JSON-RPC traffic pass through unchanged. Context MCP selection
 remains static because MCP servers start before the first turn.
 
+For `codex exec`, the same wrapper also applies the routed sandbox, native
+multi-agent feature flag, verbosity, approval policy, and context profile. Broad
+repo research prompts populate delegation/context signals; small creation prompts
+such as `bir hesap makinesi yap` remain base-context Luna writes without child
+overhead.
+
 ## First run
 
 Start with a bounded, observable task rather than a repository-wide rewrite:

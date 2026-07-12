@@ -24,6 +24,45 @@ def load_launcher():
 
 
 class RouteExecContractTest(unittest.TestCase):
+    def test_creation_intents_are_write_capable_luna_tasks(self) -> None:
+        module = load_launcher()
+        cases = (
+            ("Bir hesap makinesi yap", "yap"),
+            ("Bir hesap makinesi yaz", "yaz"),
+            ("Bu bileşeni geliştir", "geliştir"),
+            ("Bu ekranı hazırla", "hazırla"),
+            ("Bir hesap makinesi üret", "üret"),
+            ("Build a calculator", "build"),
+            ("Create a calculator", "create"),
+            ("Implement a calculator", "implement"),
+            ("Generate a calculator", "generate"),
+        )
+        for prompt, intent in cases:
+            with self.subTest(intent=intent):
+                task = module.classify_prompt(prompt)
+                decision = module.router.route(task)
+                self.assertTrue(task["writes"])
+                self.assertTrue(task["clear_done"])
+                self.assertEqual(decision.model, "gpt-5.6-luna")
+                self.assertEqual(decision.agent, "luna-worker")
+                self.assertEqual(decision.reasoning_effort, "xhigh")
+
+    def test_broad_research_prompt_populates_delegation_and_context_signals(self) -> None:
+        module = load_launcher()
+        task = module.classify_prompt("Tüm repoyu çoklu agent ile araştır, mimariyi karşılaştır ve raporla")
+        decision = module.router.route(task)
+        self.assertGreaterEqual(decision.delegation_score, 60)
+        self.assertEqual(decision.max_parallel_children, 3)
+        self.assertTrue(task["cross_file_search"])
+        self.assertEqual(decision.context_strategy, "serena")
+
+    def test_small_creation_keeps_base_context_without_child_overhead(self) -> None:
+        module = load_launcher()
+        decision = module.router.route(module.classify_prompt("Bir hesap makinesi yap"))
+        self.assertLess(decision.delegation_score, 10)
+        self.assertEqual(decision.max_parallel_children, 0)
+        self.assertEqual(decision.context_strategy, "base")
+
     def test_explicit_small_mutation_intake_is_luna_sized(self) -> None:
         module = load_launcher()
         for prompt in (

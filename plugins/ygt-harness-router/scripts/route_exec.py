@@ -22,11 +22,14 @@ _spec.loader.exec_module(router)
 
 
 WRITE_WORDS = re.compile(
-    r"\b(ekle|uygula|değiştir|düzelt|oluştur|kur|tutulsun|sakla|güncelle|fix|add|build|create|implement|update|change)\b",
+    r"\b(ekle|uygula|değiştir|düzelt|oluştur|kur|tutulsun|sakla|güncelle|yap|yaz|geliştir|hazırla|üret|fix|add|build|create|implement|update|change|make|write|develop|prepare|generate|produce)\b",
     re.IGNORECASE,
 )
 PRODUCTION_WORDS = re.compile(r"\b(production|prod|deploy|canlıya|yayınla|release)\b", re.IGNORECASE)
 READ_ONLY_WORDS = re.compile(r"\b(analiz|incele|araştır|raporla|audit|review|analyze|research)\b", re.IGNORECASE)
+BROAD_WORDS = re.compile(r"\b(tüm repo(?:yu|nun|da)?|repo genelinde|repository|codebase|mimari|architecture|cross[- ]file|çok dosya|all files)\b", re.IGNORECASE)
+PARALLEL_WORDS = re.compile(r"\b(multi[- ]?agent|çoklu agent|alt agent|subagents?|parallel|paralel|karşılaştır|compare)\b", re.IGNORECASE)
+SESSION_PRESSURE_WORDS = re.compile(r"\b(uzun session|long session|büyük çıktı|large output|tüm log|all logs|son \d+ (?:gün|saat))\b", re.IGNORECASE)
 
 
 def classify_prompt(prompt: str) -> dict[str, object]:
@@ -35,6 +38,9 @@ def classify_prompt(prompt: str) -> dict[str, object]:
         raise ValueError("prompt must not be empty")
     production = bool(PRODUCTION_WORDS.search(text))
     writes = bool(WRITE_WORDS.search(text)) or production
+    broad = bool(BROAD_WORDS.search(text))
+    parallel = bool(PARALLEL_WORDS.search(text))
+    session_pressure = bool(SESSION_PRESSURE_WORDS.search(text))
     if READ_ONLY_WORDS.search(text) and not WRITE_WORDS.search(text) and not production:
         writes = False
     clear = writes and len(text) <= 500
@@ -50,7 +56,17 @@ def classify_prompt(prompt: str) -> dict[str, object]:
         "repeatable": False,
         "writes": writes,
         "production": production,
-        "estimated_files": 3 if writes else 1,
+        "estimated_files": 6 if broad else (3 if writes else 1),
+        "cross_file_search": broad,
+        "symbol_navigation": broad,
+        "large_tool_output": session_pressure,
+        "long_session": session_pressure,
+        "lane_clarity": 23 if broad and parallel else (12 if broad else 3),
+        "parallel_gain": 20 if parallel else (8 if broad else 0),
+        "verification_value": 20 if broad and parallel else (12 if broad else 3),
+        "handoff_quality": 15 if broad else 2,
+        "uncertainty": 8 if broad else 0,
+        "reasoning_depth": 8 if broad else 0,
     }
 
 

@@ -51,6 +51,11 @@ IDE extensions use the equivalent pre-inference boundary:
 `model`/`effort` fields from user text. The native app-server remains protocol
 owner; the proxy makes no model call, network call, or prompt persistence.
 
+CLI `exec` has a wider pre-session boundary. It also applies sandbox, native
+multi-agent availability, verbosity, approval, and context-profile overrides.
+The IDE app-server enables native multi-agent capability process-wide, while MCP
+selection stays static because the server has already started before a turn.
+
 ## Context strategy
 
 Context tooling is selected independently from model and delegation. Serena is a
