@@ -267,6 +267,9 @@ def _save_state(state: dict[str, Any]) -> None:
     active = state.get("active_subagents", {})
     if isinstance(active, dict):
         state["active_subagents"] = dict(list(active.items())[-MAX_STATE_ENTRIES:])
+    sessions = state.get("sessions", {})
+    if isinstance(sessions, dict):
+        state["sessions"] = dict(list(sessions.items())[-MAX_STATE_ENTRIES:])
     handle = None
     try:
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as temporary:
@@ -410,8 +413,14 @@ def handle(event: str, payload: dict[str, Any]) -> dict[str, Any]:
         return _response(event, messages)
 
     if event == "PreCompact":
+        session_metrics = state.setdefault("sessions", {}).setdefault(session or "anonymous", {})
+        compactions = int(session_metrics.get("compactions", 0)) + 1
+        session_metrics["compactions"] = compactions
         messages.append("Checkpoint before compaction: preserve objective, done contract, changed files, tests, blockers, and exact next action.")
-        _write_telemetry(event, payload, {"checkpoint": True, "used_tokens": _usage_tokens(payload)})
+        if compactions >= 2:
+            messages.append("Second compaction reached: stop expanding this thread; continue from a bounded receipt or fresh thread.")
+        _write_telemetry(event, payload, {"checkpoint": True, "compactions": compactions, "used_tokens": _usage_tokens(payload)})
+        _save_state(state)
         return _response(event, messages)
 
     if event == "PostCompact":
@@ -442,6 +451,9 @@ def handle(event: str, payload: dict[str, Any]) -> dict[str, Any]:
         return _response(event, messages)
 
     if event == "Stop":
+        session_metrics = state.setdefault("sessions", {}).setdefault(session or "anonymous", {})
+        turns = int(session_metrics.get("turns", 0)) + 1
+        session_metrics["turns"] = turns
         final = (
             payload.get("final")
             or payload.get("final_message")
@@ -454,7 +466,10 @@ def handle(event: str, payload: dict[str, Any]) -> dict[str, Any]:
         budget = _budget_message(payload)
         if budget:
             messages.append(budget)
-        _write_telemetry(event, payload, {"finalization_ready": bool(_text(final)), "used_tokens": _usage_tokens(payload)})
+        if turns >= 12:
+            messages.append("Twelve-turn circuit breaker reached: emit a compact receipt and move the next phase to a fresh thread or bounded child.")
+        _write_telemetry(event, payload, {"finalization_ready": bool(_text(final)), "turns": turns, "used_tokens": _usage_tokens(payload)})
+        _save_state(state)
         return _response(event, messages)
 
     _write_telemetry(event, payload, {"unrecognised_event": True})

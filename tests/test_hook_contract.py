@@ -190,3 +190,20 @@ class HookContractTests(unittest.TestCase):
             self.assertIn("systemMessage", compact)
             self.assertNotIn("hookSpecificOutput", stop)
             self.assertNotIn("hookSpecificOutput", compact)
+
+    def test_session_circuit_breakers_trigger_at_twelve_turns_and_two_compactions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            tmp_path = Path(directory)
+            stop = {}
+            for _ in range(12):
+                stop, evidence, _ = run_hook(
+                    "Stop", {"session_id": "long-session", "last_assistant_message": "done"}, tmp_path
+                )
+            self.assertIn("Twelve-turn circuit breaker", context(stop))
+            self.assertEqual(evidence["records"][-1]["turns"], 12)
+
+            first, _, _ = run_hook("PreCompact", {"session_id": "long-session"}, tmp_path)
+            second, evidence, _ = run_hook("PreCompact", {"session_id": "long-session"}, tmp_path)
+            self.assertNotIn("Second compaction reached", context(first))
+            self.assertIn("Second compaction reached", context(second))
+            self.assertEqual(evidence["records"][-1]["compactions"], 2)
