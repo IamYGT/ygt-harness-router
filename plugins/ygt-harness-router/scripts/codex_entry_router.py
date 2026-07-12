@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -60,18 +61,32 @@ def _copy(source, target) -> None:
 def proxy_app_server(real: str, args: list[str]) -> int:
     child = subprocess.Popen([real, *args], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert child.stdin and child.stdout and child.stderr
+    previous_handlers = {}
+
+    def forward_signal(signum, _frame) -> None:
+        if child.poll() is None:
+            child.send_signal(signum)
+
+    for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        previous_handlers[signum] = signal.signal(signum, forward_signal)
     stdout_thread = threading.Thread(target=_copy, args=(child.stdout, sys.stdout.buffer), daemon=True)
     stderr_thread = threading.Thread(target=_copy, args=(child.stderr, sys.stderr.buffer), daemon=True)
-    stdout_thread.start(); stderr_thread.start()
-    for line in sys.stdin.buffer:
-        routed, receipt = route_turn_start_line(line)
-        if receipt:
-            print(f"ygt-route model={receipt['model']} effort={receipt['effort']} agent={receipt['agent']}", file=sys.stderr, flush=True)
-        child.stdin.write(routed); child.stdin.flush()
-    child.stdin.close()
-    code = child.wait()
-    stdout_thread.join(timeout=2); stderr_thread.join(timeout=2)
-    return code
+    try:
+        stdout_thread.start(); stderr_thread.start()
+        for line in sys.stdin.buffer:
+            routed, receipt = route_turn_start_line(line)
+            if receipt:
+                print(f"ygt-route model={receipt['model']} effort={receipt['effort']} agent={receipt['agent']}", file=sys.stderr, flush=True)
+            child.stdin.write(routed); child.stdin.flush()
+        child.stdin.close()
+        code = child.wait()
+        stdout_thread.join(timeout=2); stderr_thread.join(timeout=2)
+        return code
+    finally:
+        for signum, handler in previous_handlers.items():
+            signal.signal(signum, handler)
+        if child.poll() is None:
+            child.terminate()
 
 
 def _explicit_model(args: list[str]) -> bool:
@@ -92,9 +107,9 @@ def _last_prompt(args: list[str]) -> str | None:
     return candidates[-1] if candidates else None
 
 
-def _first_command(args: list[str]) -> str | None:
+def _command_index(args: list[str]) -> int | None:
     skip = False
-    for arg in args:
+    for index, arg in enumerate(args):
         if skip:
             skip = False
             continue
@@ -102,27 +117,28 @@ def _first_command(args: list[str]) -> str | None:
             skip = True
             continue
         if not arg.startswith("-"):
-            return arg
+            return index
     return None
 
 
 def routed_cli_args(args: list[str], stdin_prompt: str | None = None) -> tuple[list[str], dict[str, str] | None]:
     if not args:
         return ["-m", "gpt-5.6-luna", "-c", 'model_reasoning_effort="xhigh"'], {"model": "gpt-5.6-luna", "effort": "xhigh", "agent": "luna-worker"}
-    command = _first_command(args)
+    command_index = _command_index(args)
+    command = args[command_index] if command_index is not None else None
     if command in PASSTHROUGH or args[0] in {"-h", "--help", "-V", "--version"}:
         return args, None
-    if args[0] == "exec" and len(args) > 1 and args[1] in {"resume", "review", "help"}:
+    if command == "exec" and command_index is not None and len(args) > command_index + 1 and args[command_index + 1] in {"resume", "review", "help"}:
         return args, None
     if _explicit_model(args):
         return args, None
-    prompt = stdin_prompt if args[0] == "exec" and (not args[1:] or args[-1] == "-") else _last_prompt(args[1:] if args[0] == "exec" else args)
+    prompt = stdin_prompt if command == "exec" and (len(args) == command_index + 1 or args[-1] == "-") else _last_prompt(args[command_index + 1:] if command == "exec" and command_index is not None else args)
     if not prompt:
         return args, None
     routed = decision(prompt)
     overrides = ["-m", routed.model, "-c", f'model_reasoning_effort="{routed.reasoning_effort}"']
-    if args[0] == "exec":
-        result = ["exec", *overrides, *args[1:]]
+    if command == "exec" and command_index is not None:
+        result = [*args[:command_index + 1], *overrides, *args[command_index + 1:]]
     else:
         result = [*overrides, *args]
     return result, {"model": routed.model, "effort": routed.reasoning_effort, "agent": routed.agent}
@@ -134,7 +150,8 @@ def main() -> int:
     if "app-server" in args:
         return proxy_app_server(real, args)
     stdin_prompt = None
-    if args and args[0] == "exec" and (len(args) == 1 or args[-1] == "-") and not sys.stdin.isatty():
+    command_index = _command_index(args)
+    if command_index is not None and args[command_index] == "exec" and (len(args) == command_index + 1 or args[-1] == "-") and not sys.stdin.isatty():
         stdin_prompt = sys.stdin.read()
     routed_args, receipt = routed_cli_args(args, stdin_prompt)
     if receipt:

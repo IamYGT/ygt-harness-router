@@ -57,6 +57,14 @@ class CodexEntryRouterTest(unittest.TestCase):
         self.assertNotIn(prompt, args)
         self.assertEqual(receipt["model"], "gpt-5.6-luna")
 
+    def test_cli_stdin_routes_after_global_options(self) -> None:
+        prompt = "Bu alanı ekle"
+        args, receipt = MODULE.routed_cli_args(["--strict-config", "exec", "-"], prompt)
+        self.assertEqual(args[:2], ["--strict-config", "exec"])
+        self.assertIn("gpt-5.6-luna", args)
+        self.assertNotIn(prompt, args)
+        self.assertEqual(receipt["agent"], "luna-worker")
+
     def test_management_and_explicit_model_are_passthrough(self) -> None:
         for args in (["plugin", "list"], ["doctor"], ["--strict-config", "doctor", "--summary"], ["exec", "-m", "gpt-5.6-sol", "task"], ["--version"]):
             with self.subTest(args=args):
