@@ -41,7 +41,7 @@ def run_hook(event: str, payload: dict, tmp_path: Path, **env_overrides: str) ->
 
 
 def context(output: dict) -> str:
-    return output.get("hookSpecificOutput", {}).get("additionalContext", "")
+    return output.get("hookSpecificOutput", {}).get("additionalContext", "") or output.get("systemMessage", "")
 
 
 class HookContractTests(unittest.TestCase):
@@ -103,7 +103,7 @@ class HookContractTests(unittest.TestCase):
             tmp_path = Path(directory)
             run_hook("SubagentStart", {"session_id": "s", "agent_id": "child-1"}, tmp_path)
             stop, evidence, _ = run_hook("SubagentStop", {"session_id": "s", "agent_id": "child-1"}, tmp_path)
-            self.assertNotIn("permissionDecision", stop["hookSpecificOutput"])
+            self.assertNotIn("hookSpecificOutput", stop)
             self.assertIn("receipt is incomplete", context(stop))
             self.assertTrue(evidence["records"][-1]["was_active"])
             self.assertFalse(evidence["records"][-1]["receipt_present"])
@@ -171,11 +171,22 @@ class HookContractTests(unittest.TestCase):
                 check=True,
             )
             output = json.loads(completed.stdout)
-            self.assertEqual(output["hookSpecificOutput"]["hookEventName"], "PostCompact")
+            self.assertIn("Compaction completed", output["systemMessage"])
 
     def test_stop_accepts_official_last_assistant_message_as_finalization(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output, _, _ = run_hook(
                 "Stop", {"session_id": "official-stop", "last_assistant_message": "completed"}, Path(directory)
             )
+            self.assertEqual(output, {})
             self.assertNotIn("Finalization checkpoint", context(output))
+
+    def test_stop_and_compaction_use_common_output_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            tmp_path = Path(directory)
+            stop, _, _ = run_hook("Stop", {"session_id": "s"}, tmp_path)
+            compact, _, _ = run_hook("PreCompact", {"session_id": "s"}, tmp_path)
+            self.assertIn("systemMessage", stop)
+            self.assertIn("systemMessage", compact)
+            self.assertNotIn("hookSpecificOutput", stop)
+            self.assertNotIn("hookSpecificOutput", compact)

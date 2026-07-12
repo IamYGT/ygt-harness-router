@@ -324,13 +324,19 @@ def _write_telemetry(event: str, payload: dict[str, Any], details: dict[str, Any
 
 
 def _response(event: str, messages: list[str], decision: str | None = None) -> dict[str, Any]:
-    output: dict[str, Any] = {"hookEventName": event}
-    if messages:
-        output["additionalContext"] = " ".join(messages)[:2000]
-    if event == "PreToolUse" and decision == "deny":
-        output["permissionDecision"] = decision
-        output["permissionDecisionReason"] = "Generic YGT_HARNESS_POLICY requested this PreToolUse decision."
-    return {"hookSpecificOutput": output}
+    message = " ".join(messages)[:2000]
+    if event in {"PreToolUse", "PostToolUse", "SubagentStart"}:
+        output: dict[str, Any] = {"hookEventName": event}
+        if message:
+            output["additionalContext"] = message
+        if event == "PreToolUse" and decision == "deny":
+            output["permissionDecision"] = decision
+            output["permissionDecisionReason"] = "Generic YGT_HARNESS_POLICY requested this PreToolUse decision."
+        return {"hookSpecificOutput": output}
+    # Compact and stop events accept the common output schema, not the
+    # hookSpecificOutput wrapper. Returning that wrapper marks an otherwise
+    # successful command hook as failed in Codex.
+    return {"systemMessage": message} if message else {}
 
 
 def _subagent_id(payload: dict[str, Any]) -> str | None:
