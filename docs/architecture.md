@@ -9,6 +9,11 @@ does not replace Codex's model, sandbox, marketplace, or billing systems.
 flowchart LR
     A[User objective] --> B[Intake contract]
     B --> C[Delegation score]
+    B --> M[Context strategy]
+    M -->|small bounded| N[Base]
+    M -->|symbol or cross-file| O[Serena]
+    M -->|large output or long session| P[Context Mode]
+    M -->|both| Q[Combined]
     C -->|below threshold| D[Root execution]
     C -->|bounded parallel gain| E[Lane selection]
     E --> F[Explorer / worker / specialist]
@@ -35,6 +40,18 @@ Every non-trivial task should have:
 
 Cheap intake is intentional. Do not spend a full reasoning turn classifying a
 one-line command.
+
+## Context strategy
+
+Context tooling is selected independently from model and delegation. Serena is a
+symbol-retrieval layer; Context Mode is a large-output/session-continuity layer.
+Neither is free at startup, so the router returns `base`, `serena`,
+`context-mode`, or `context-lab` before a session begins. Hooks must not attempt
+late bypass because MCP and `SessionStart` cost has already been paid.
+
+The discovery benchmark in `docs/context-routing-benchmark.md` makes base the
+default for proven small tasks. Unknown tasks retain the combined quality-first
+route until intake supplies enough bounded signals.
 
 ## Delegation score
 

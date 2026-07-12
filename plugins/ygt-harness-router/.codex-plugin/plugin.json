@@ -1,6 +1,6 @@
 {
   "name": "ygt-harness-router",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Quality-first Sol, Terra, and Luna routing with token budgets, lifecycle hooks, and evidence-led handoffs.",
   "author": {
     "name": "YGT Labs AI",
@@ -17,7 +17,7 @@
     "longDescription": "Adds deterministic capability scoring, bounded subagent roles, rollout-budget templates, context handoffs, privacy-bounded telemetry, and lifecycle hooks without optimizing cost at the expense of quality.",
     "developerName": "YGT Labs AI",
     "category": "Productivity",
-    "capabilities": ["Model routing", "Multi-agent orchestration", "Token budgets", "Lifecycle telemetry"],
+    "capabilities": ["Model routing", "Context routing", "Multi-agent orchestration", "Token budgets", "Lifecycle telemetry"],
     "websiteURL": "https://github.com/IamYGT/ygt-harness-router",
     "defaultPrompt": [
       "Route this task to Sol, Terra, or Luna and explain the quality gate.",

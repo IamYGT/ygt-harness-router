@@ -86,12 +86,45 @@ class RouterContractTest(unittest.TestCase):
             router.route({"price": 1})
         with self.assertRaisesRegex(ValueError, "between"):
             router.route({"risk": 21})
+        with self.assertRaisesRegex(ValueError, "between"):
+            router.route({"estimated_files": 1001})
+
+    def test_small_single_file_task_bypasses_context_layers(self) -> None:
+        result = router.route({"clear_done": True, "repeatable": True, "estimated_files": 1})
+        self.assertEqual(result.context_strategy, "base")
+        self.assertIn("small bounded task", result.context_reason)
+
+    def test_symbol_or_cross_file_work_routes_to_serena(self) -> None:
+        for payload in ({"symbol_navigation": True}, {"cross_file_search": True}, {"estimated_files": 4}):
+            with self.subTest(payload=payload):
+                self.assertEqual(router.route(payload).context_strategy, "serena")
+
+    def test_large_output_or_long_session_routes_to_context_mode(self) -> None:
+        for payload in ({"large_tool_output": True}, {"long_session": True}):
+            with self.subTest(payload=payload):
+                self.assertEqual(router.route(payload).context_strategy, "context-mode")
+
+    def test_symbol_and_session_pressure_use_combined_context(self) -> None:
+        result = router.route({"symbol_navigation": True, "large_tool_output": True})
+        self.assertEqual(result.context_strategy, "context-lab")
+
+    def test_unassessed_context_need_defaults_to_combined_quality_route(self) -> None:
+        result = router.route({})
+        self.assertEqual(result.context_strategy, "context-lab")
+        self.assertIn("unassessed", result.context_reason)
+
+    def test_context_strategy_does_not_weaken_security_model_gate(self) -> None:
+        result = router.route({"security_sensitive": True, "estimated_files": 1,
+                               "clear_done": True, "repeatable": True})
+        self.assertEqual(result.model, "gpt-5.6-sol")
+        self.assertEqual(result.context_strategy, "base")
 
     def test_cli_is_json_only_and_reports_invalid_input(self) -> None:
         good = subprocess.run([sys.executable, str(ROUTER)], input='{"clear_done":true}', text=True,
                               capture_output=True, check=False)
         self.assertEqual(good.returncode, 0)
         self.assertEqual(json.loads(good.stdout)["model"], "gpt-5.6-luna")
+        self.assertEqual(json.loads(good.stdout)["context_strategy"], "base")
         bad = subprocess.run([sys.executable, str(ROUTER)], input='[]', text=True,
                              capture_output=True, check=False)
         self.assertEqual(bad.returncode, 2)

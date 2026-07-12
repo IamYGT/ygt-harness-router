@@ -62,6 +62,24 @@ The capability bands are quality-first: `0-29` Luna, `30-64` Terra, and
 mandatory gates raise the minimum tier. An unassessed task defaults to Sol rather
 than guessing a cheaper lane.
 
+Also provide privacy-safe context signals before the session starts:
+
+- `estimated_files` (`0..1000`)
+- `symbol_navigation`
+- `cross_file_search`
+- `large_tool_output`
+- `long_session`
+
+The returned `context_strategy` is a separate latency decision:
+
+- `base`: small bounded task; avoid MCP/plugin startup.
+- `serena`: symbol navigation, cross-file search, or at least four estimated files.
+- `context-mode`: large tool output or a long session.
+- `context-lab`: both needs are present, or the need has not yet been assessed.
+
+Select this strategy before opening the Codex session. A tool hook is too late to
+save `SessionStart` and MCP initialization time.
+
 ## 4. Select the route
 
 - **0-9 — local:** root handles it without a child.
@@ -93,6 +111,7 @@ route: terra-worker
 model: gpt-5.6-terra
 reasoning: high
 score: 47
+context_strategy: serena
 owned_paths: [src/example.py, tests/test_example.py]
 stop_when: focused test passes or first blocking failure is captured
 forbidden: no unrelated edits, no database reset, no secret output

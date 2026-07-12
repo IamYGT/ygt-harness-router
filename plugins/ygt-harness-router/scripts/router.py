@@ -40,6 +40,8 @@ class RouteDecision:
     delegation: str
     max_parallel_children: int
     budget_class: str
+    context_strategy: str
+    context_reason: str
     reasons: list[str]
     quality_gate: str
     escalation: str
@@ -61,6 +63,8 @@ def normalize_task(payload: dict[str, Any]) -> dict[str, Any]:
     known = set(DIMENSIONS) | set(DELEGATION_DIMENSIONS) | {
         "clear_done", "repeatable", "parallel_lanes", "writes", "production",
         "security_sensitive", "failed_gate", "evidence_conflict", "task_type",
+        "estimated_files", "symbol_navigation", "large_tool_output", "long_session",
+        "cross_file_search",
     }
     unknown = sorted(set(payload) - known)
     if unknown:
@@ -70,7 +74,10 @@ def normalize_task(payload: dict[str, Any]) -> dict[str, Any]:
     task["clear_done"] = bool(payload.get("clear_done", False))
     task["repeatable"] = bool(payload.get("repeatable", False))
     task["parallel_lanes"] = bounded(payload.get("parallel_lanes", 0), 6, "parallel_lanes")
+    task["estimated_files"] = bounded(payload.get("estimated_files", 0), 1000, "estimated_files")
     for key in ("writes", "production", "security_sensitive", "failed_gate", "evidence_conflict"):
+        task[key] = bool(payload.get(key, False))
+    for key in ("symbol_navigation", "large_tool_output", "long_session", "cross_file_search"):
         task[key] = bool(payload.get(key, False))
     task["task_type"] = str(payload.get("task_type", "general")).strip().lower() or "general"
     return task
@@ -81,6 +88,27 @@ def route(payload: dict[str, Any]) -> RouteDecision:
     score = sum(task[key] for key in DIMENSIONS)
     delegation_score = sum(task[key] for key in DELEGATION_DIMENSIONS)
     reasons: list[str] = []
+
+    context_assessed = any(key in payload for key in (
+        "estimated_files", "symbol_navigation", "large_tool_output", "long_session", "cross_file_search"
+    )) or task["clear_done"] or task["repeatable"]
+    needs_serena = task["symbol_navigation"] or task["cross_file_search"] or task["estimated_files"] >= 4
+    needs_context = task["large_tool_output"] or task["long_session"]
+    if not context_assessed:
+        context_strategy = "context-lab"
+        context_reason = "unassessed context need keeps the quality-first combined route"
+    elif needs_serena and needs_context:
+        context_strategy = "context-lab"
+        context_reason = "symbol retrieval and session pressure both need support"
+    elif needs_serena:
+        context_strategy = "serena"
+        context_reason = "symbol navigation or cross-file retrieval benefits from Serena"
+    elif needs_context:
+        context_strategy = "context-mode"
+        context_reason = "large output or long-session pressure benefits from Context Mode"
+    else:
+        context_strategy = "base"
+        context_reason = "small bounded task bypasses MCP and context startup overhead"
 
     assessed = any(key in payload for key in DIMENSIONS) or task["clear_done"] or task["repeatable"]
     if not assessed:
@@ -144,7 +172,21 @@ def route(payload: dict[str, Any]) -> RouteDecision:
     gate = "observable done contract, nearest tests, forbidden outcome, final evidence receipt"
     if not reasons:
         reasons.append("low-complexity bounded work does not need frontier capacity")
-    return RouteDecision(score, delegation_score, model, effort, agent, delegation, max_children, budget_class, reasons, gate, escalation)
+    return RouteDecision(
+        capability_score=score,
+        delegation_score=delegation_score,
+        model=model,
+        reasoning_effort=effort,
+        agent=agent,
+        delegation=delegation,
+        max_parallel_children=max_children,
+        budget_class=budget_class,
+        context_strategy=context_strategy,
+        context_reason=context_reason,
+        reasons=reasons,
+        quality_gate=gate,
+        escalation=escalation,
+    )
 
 
 def load_payload(path: str | None) -> dict[str, Any]:
