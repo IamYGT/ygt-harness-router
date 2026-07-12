@@ -52,6 +52,7 @@ class CodexEntryRouterTest(unittest.TestCase):
         self.assertIn("workspace-write", args)
         self.assertIn("features.multi_agent=false", args)
         self.assertIn("mcp_servers.serena.enabled=false", args)
+        self.assertTrue(any("allowed_children=0" in arg for arg in args))
         self.assertEqual(receipt["agent"], "luna-worker")
 
     def test_cli_stdin_routes_without_putting_prompt_in_argv(self) -> None:
@@ -74,6 +75,22 @@ class CodexEntryRouterTest(unittest.TestCase):
         self.assertEqual(receipt["context"], "base")
         self.assertEqual(receipt["children"], 0)
         self.assertIn("workspace-write", args)
+
+    def test_turn_start_injects_route_developer_contract(self) -> None:
+        request = {"id": 9, "method": "turn/start", "params": {"threadId": "t", "input": [{"type": "text", "text": "Bir hesap makinesi yap"}]}}
+        encoded, _ = MODULE.route_turn_start_line((json.dumps(request) + "\n").encode())
+        params = json.loads(encoded)["params"]
+        mode = params["collaborationMode"]
+        self.assertEqual(mode["mode"], "default")
+        self.assertEqual(mode["settings"]["model"], "gpt-5.6-luna")
+        self.assertIn("allowed_children=0", mode["settings"]["developer_instructions"])
+
+    def test_broad_turn_contract_allows_scored_children(self) -> None:
+        request = {"method": "turn/start", "params": {"threadId": "t", "input": [{"type": "text", "text": "Tüm repoyu çoklu agent ile araştır ve mimariyi karşılaştır"}]}}
+        encoded, receipt = MODULE.route_turn_start_line((json.dumps(request) + "\n").encode())
+        contract = json.loads(encoded)["params"]["collaborationMode"]["settings"]["developer_instructions"]
+        self.assertEqual(receipt["children"], 3)
+        self.assertIn("allowed_children=3", contract)
 
     def test_app_server_enables_native_multi_agent_capability(self) -> None:
         args = MODULE.app_server_args(["-c", "features.code_mode_host=true", "app-server"])

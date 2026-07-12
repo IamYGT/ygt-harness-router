@@ -176,6 +176,11 @@ repo research prompts populate delegation/context signals; small creation prompt
 such as `bir hesap makinesi yap` remain base-context Luna writes without child
 overhead.
 
+The wrapper also injects a prompt-private route contract as developer instructions.
+It carries only score, context, routed role, and the allowed child count—not the
+prompt body. This keeps native model behavior from silently exceeding a zero- or
+bounded-child decision.
+
 ## First run
 
 Start with a bounded, observable task rather than a repository-wide rewrite:

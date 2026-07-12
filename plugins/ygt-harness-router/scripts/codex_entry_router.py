@@ -37,7 +37,22 @@ def route_receipt(routed) -> dict[str, Any]:
         "agent": routed.agent,
         "context": routed.context_strategy,
         "children": routed.max_parallel_children,
+        "delegation_score": routed.delegation_score,
     }
+
+
+def route_contract(routed) -> str:
+    child_rule = (
+        "Do not call collaboration tools and do not spawn subagents."
+        if routed.max_parallel_children == 0
+        else f"Use at most {routed.max_parallel_children} child agents, only for disjoint evidence or work lanes."
+    )
+    return (
+        "Pre-session YGT route contract: "
+        f"delegation_score={routed.delegation_score}; allowed_children={routed.max_parallel_children}; "
+        f"context_strategy={routed.context_strategy}; routed_agent={routed.agent}. "
+        f"{child_rule} This turn-specific contract overrides generic delegation defaults."
+    )
 
 
 def route_turn_start_line(line: bytes) -> tuple[bytes, dict[str, Any] | None]:
@@ -59,6 +74,21 @@ def route_turn_start_line(line: bytes) -> tuple[bytes, dict[str, Any] | None]:
     routed = decision(prompt)
     params["model"] = routed.model
     params["effort"] = routed.reasoning_effort
+    current_mode = params.get("collaborationMode") if isinstance(params.get("collaborationMode"), dict) else {}
+    current_settings = current_mode.get("settings") if isinstance(current_mode.get("settings"), dict) else {}
+    existing_instructions = current_settings.get("developer_instructions")
+    contract = route_contract(routed)
+    if isinstance(existing_instructions, str) and existing_instructions.strip():
+        contract = existing_instructions.rstrip() + "\n\n" + contract
+    params["collaborationMode"] = {
+        "mode": current_mode.get("mode", "default"),
+        "settings": {
+            **current_settings,
+            "model": routed.model,
+            "reasoning_effort": routed.reasoning_effort,
+            "developer_instructions": contract,
+        },
+    }
     return (json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n").encode(), route_receipt(routed)
 
 
@@ -147,6 +177,7 @@ def policy_overrides(routed) -> list[str]:
         "-c", 'model_verbosity="low"',
         "-c", 'approval_policy="never"',
         "-c", f'features.multi_agent={str(routed.max_parallel_children > 0).lower()}',
+        "-c", f'developer_instructions={json.dumps(route_contract(routed), ensure_ascii=False)}',
         "-s", sandbox,
     ]
     if routed.context_strategy == "serena":

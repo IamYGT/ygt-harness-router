@@ -56,6 +56,11 @@ multi-agent availability, verbosity, approval, and context-profile overrides.
 The IDE app-server enables native multi-agent capability process-wide, while MCP
 selection stays static because the server has already started before a turn.
 
+Both entry paths add a turn-specific developer route contract. CLI uses the
+native `developer_instructions` config; app-server uses `collaborationMode`
+settings. The contract contains no prompt text and makes the scored child ceiling
+model-visible, including an explicit no-subagent rule when the ceiling is zero.
+
 ## Context strategy
 
 Context tooling is selected independently from model and delegation. Serena is a
