@@ -51,6 +51,8 @@ class PublicDocsContractTests(unittest.TestCase):
         self.assertIn("codex doctor", readme)
         self.assertNotIn("/root/", readme)
         self.assertNotIn("/opt/codex-harness", readme)
+        releasing = (ROOT / "docs/releasing.md").read_text(encoding="utf-8")
+        self.assertNotIn("--sparse plugins/ygt-harness-router", readme + releasing)
 
     def test_manifest_and_marketplace_point_to_the_public_plugin(self) -> None:
         manifest = json.loads(

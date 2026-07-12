@@ -34,8 +34,7 @@ wrong, publish a corrective release rather than rewriting a public history.
 From a clean temporary checkout or an isolated Codex profile:
 
 ```bash
-codex plugin marketplace add IamYGT/ygt-harness-router --ref vX.Y.Z \
-  --sparse plugins/ygt-harness-router
+codex plugin marketplace add IamYGT/ygt-harness-router --ref vX.Y.Z
 codex plugin list --available --json
 codex plugin add ygt-harness-router --marketplace <marketplace-name>
 codex plugin list
