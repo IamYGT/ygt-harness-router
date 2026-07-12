@@ -4,6 +4,15 @@ This project publishes the plugin and its repository marketplace snapshot
 together. Keep the release small, reproducible, and easy to roll back by pinning
 the Git ref in downstream installs.
 
+## Live-session compatibility
+
+Codex resolves `${PLUGIN_ROOT}` to a versioned cache directory when a session
+starts. Removing that directory while the session is open breaks its later
+hooks. The operator harness must update this plugin with
+`/opt/codex-harness/codex/scripts/upgrade-ygt-harness-router.sh`; that helper
+reinstalls the current version and preserves compatibility symlinks for paths
+held by open sessions. Do not manually delete the previous cache directory.
+
 ## Before tagging
 
 - [ ] Update the plugin version in
