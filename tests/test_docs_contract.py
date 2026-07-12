@@ -49,6 +49,8 @@ class PublicDocsContractTests(unittest.TestCase):
         self.assertIn("codex plugin marketplace add IamYGT/ygt-harness-router", readme)
         self.assertIn("codex plugin add ygt-harness-router", readme)
         self.assertIn("codex doctor", readme)
+        self.assertIn("codex features enable plugins", readme)
+        self.assertIn("`/hooks`", readme)
         self.assertNotIn("/root/", readme)
         self.assertNotIn("/opt/codex-harness", readme)
         releasing = (ROOT / "docs/releasing.md").read_text(encoding="utf-8")

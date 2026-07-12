@@ -79,6 +79,24 @@ The public repository contains a marketplace manifest under
    codex doctor
    ```
 
+5. Plugin hooks are executable code and are not trusted automatically. In a
+   new interactive Codex session, open `/hooks`, inspect the source and exact
+   command definitions, then trust the YGT Harness Router hooks if they match
+   this checkout.
+
+If the marketplace command succeeds but plugin lists remain empty, verify the
+stable feature state:
+
+```bash
+codex features list
+codex features enable plugins
+```
+
+A system or workspace-managed `plugins = false` setting can override personal
+configuration. In that case, ask the administrator to enable the feature; use
+`--enable plugins` only as a command-scoped diagnostic, not as a hidden global
+configuration change.
+
 To refresh a GitHub snapshot later, run `codex plugin marketplace upgrade` and
 then restart Codex. The exact upgrade selector is shown by
 `codex plugin marketplace --help` for the installed CLI version.
