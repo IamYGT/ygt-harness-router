@@ -7,14 +7,18 @@ configured effort (`Sol medium`, `Terra high`, `Luna xhigh`). All 15 runs passed
 the focused test and changed only the intended source file; Python generated an
 untracked `__pycache__` during independent verification.
 
-| Model | n | Success | Wall median | Wall mean | Mean uncached input | Mean output | Mean reasoning |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Terra | 5 | 5 | **27.486 s** | **26.611 s** | **18,071** | 1,389 | 472 |
-| Sol | 5 | 5 | 27.755 s | 28.483 s | 19,976 | **925** | **122** |
-| Luna | 5 | 5 | 41.535 s | 46.005 s | 23,323 | 2,330 | 1,280 |
+| Model | n | Success | Wall median | Mean uncached | Mean credits | Mean API USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Luna | 5 | 5 | 41.535 s | 23,323 | **1.266** | **$0.0506** |
+| Terra | 5 | 5 | **27.486 s** | **18,071** | 2.521 | $0.1008 |
+| Sol | 5 | 5 | 27.755 s | 19,976 | 4.712 | $0.1885 |
 
-Luna xhigh was 51.1% slower than Terra at the median and used 29.1% more mean
-uncached input. The evidence rejects automatic Luna for this task class. The
-pre-session launcher therefore defaults small bounded writes to Terra medium;
-`luna-worker` remains an explicit experimental route. Raw JSONL and machine data
-remain local under `/root/.codex-lab/model-routing-benchmark/`.
+Luna xhigh was 51.1% slower than Terra at the median, but its official rate made
+the measured task 49.8% cheaper in credits. The operator's primary objective is
+priced consumption, not raw token count or minimum latency, so the pre-session
+launcher defaults this bounded class to Luna. Raw JSONL and machine data remain
+local under `/root/.codex-lab/model-routing-benchmark/`.
+
+Pricing formula uses official credits per one million input/cached/output tokens:
+Sol `125/12.5/750`, Terra `62.5/6.25/375`, Luna `25/2.5/150`. API-equivalent
+rates are Sol `$5/$0.50/$30`, Terra `$2.50/$0.25/$15`, Luna `$1/$0.10/$6`.

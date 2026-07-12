@@ -128,7 +128,6 @@ def route(payload: dict[str, Any]) -> RouteDecision:
     eligible_luna_write = (
         task["writes"] and task["clear_done"] and 1 <= task["estimated_files"] <= 3
         and score < 30 and task["risk"] <= 5 and task["failure_cost"] <= 3
-        and task["task_type"] == "luna_write"
         and not forced_sol and not task["failed_gate"]
     )
     if task["writes"] and not forced_sol and not eligible_luna_write:

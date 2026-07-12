@@ -49,16 +49,16 @@ class RouterContractTest(unittest.TestCase):
         self.assertEqual(result.agent, "terra-worker")
         self.assertIn("write-capable lane", " ".join(result.reasons))
 
-    def test_small_clear_write_defaults_to_benchmark_winning_terra(self) -> None:
+    def test_small_clear_write_defaults_to_price_winning_luna(self) -> None:
         result = router.route({"clear_done": True, "writes": True, "estimated_files": 3,
                                "ambiguity": 2, "risk": 2, "integration": 3, "judgment": 2,
                                "failure_cost": 2, "clarity_gap": 2, "repeatability_gap": 1})
-        self.assertEqual(result.model, "gpt-5.6-terra")
-        self.assertEqual(result.agent, "terra-worker")
-        self.assertEqual(result.reasoning_effort, "medium")
+        self.assertEqual(result.model, "gpt-5.6-luna")
+        self.assertEqual(result.agent, "luna-worker")
+        self.assertEqual(result.reasoning_effort, "xhigh")
         self.assertEqual(result.context_strategy, "base")
 
-    def test_explicit_luna_write_route_uses_write_capable_luna(self) -> None:
+    def test_explicit_luna_write_route_remains_write_capable_luna(self) -> None:
         result = router.route({"clear_done": True, "writes": True, "estimated_files": 3,
                                "ambiguity": 2, "risk": 2, "integration": 3, "judgment": 2,
                                "failure_cost": 2, "clarity_gap": 2, "repeatability_gap": 1,

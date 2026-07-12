@@ -63,8 +63,6 @@ def build_command(decision: router.RouteDecision, cwd: Path, prompt: str, extra:
         "-c", f'features.multi_agent={str(decision.max_parallel_children > 0).lower()}',
         "-s", sandbox,
     ]
-    if decision.model != "gpt-5.6-sol":
-        command += ["-c", 'service_tier="fast"']
     if decision.context_strategy == "serena":
         command += ["-p", "serena", "-c", "mcp_servers.serena.enabled=true"]
     elif decision.context_strategy == "context-mode":

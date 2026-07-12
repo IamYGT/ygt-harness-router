@@ -51,14 +51,14 @@ class RouteExecContractTest(unittest.TestCase):
                 self.assertEqual(task["writes"], writes)
                 self.assertEqual(task["production"], production)
 
-    def test_build_command_uses_benchmark_winning_terra_for_small_write(self) -> None:
+    def test_build_command_uses_price_winning_luna_for_small_write(self) -> None:
         module = load_launcher()
         decision = module.router.route(module.classify_prompt("Bu alanı ekle ve test et"))
         command = module.build_command(decision, Path("/tmp/project"), "Bu alanı ekle ve test et", [])
         self.assertEqual(command[0:2], ["codex", "exec"])
-        self.assertIn("gpt-5.6-terra", command)
+        self.assertIn("gpt-5.6-luna", command)
         self.assertIn("workspace-write", command)
-        self.assertIn('model_reasoning_effort="medium"', command)
+        self.assertIn('model_reasoning_effort="xhigh"', command)
         self.assertIn("mcp_servers.serena.enabled=false", command)
         self.assertNotIn("context-mode", command)
 
@@ -84,7 +84,7 @@ class RouteExecContractTest(unittest.TestCase):
             )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         payload = json.loads(completed.stdout)
-        self.assertEqual(payload["decision"]["agent"], "terra-worker")
+        self.assertEqual(payload["decision"]["agent"], "luna-worker")
         self.assertEqual(payload["command"][0:2], ["codex", "exec"])
 
     def test_cli_explicit_luna_write_override_uses_luna_worker(self) -> None:

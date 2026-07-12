@@ -93,11 +93,11 @@ Model policy:
 
 - **Sol (`gpt-5.6-sol`)**: root orchestration and owner-grade ambiguity, architecture,
   or a failed gate. Prefer `high`; use `xhigh` only when the contract warrants it.
-- **Terra (`gpt-5.6-terra`)**: default for ordinary and small bounded
-  implementation with a clear file boundary and focused tests. Prefer `medium`
-  for one-to-three-file work and `high` for broader integration.
+- **Terra (`gpt-5.6-terra`)**: ordinary implementation when Luna's bounded
+  one-to-three-file contract is exceeded. Prefer `medium` for bounded work and
+  `high` for broader integration.
 - **Luna (`gpt-5.6-luna`)**: bounded exploration, extraction, verification, and
-  explicitly requested low-risk writes across at most three files. Use `xhigh` for normal lanes
+  low-risk writes across at most three files. Use `xhigh` for normal lanes
   and `max` for a failed gate, conflict, or adversarial challenge. `luna-explorer`
   stays read-only while `luna-worker` is explicitly write-capable.
 

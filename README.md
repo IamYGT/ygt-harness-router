@@ -153,10 +153,10 @@ python3 plugins/ygt-harness-router/scripts/route_exec.py \
 ```
 
 Clear low-risk writes across one to three estimated files route to
-`gpt-5.6-terra` medium with `workspace-write`, no subagent, and no context MCP
-startup. A five-sample matched benchmark found Terra faster and lower-token than
-Luna xhigh for this contract. Luna write remains available explicitly with
-`--task-json '{"task_type":"luna_write"}'`.
+`gpt-5.6-luna` xhigh with `workspace-write`, no subagent, and no context MCP
+startup. A five-sample matched benchmark found Luna slower but roughly 50%
+cheaper than Terra after applying the official model-specific cached/input/output
+credit rates. Routing optimizes priced credits first, then wall time.
 
 ## First run
 
