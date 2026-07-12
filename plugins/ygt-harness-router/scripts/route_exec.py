@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -57,7 +58,7 @@ def build_command(decision: router.RouteDecision, cwd: Path, prompt: str, extra:
     del prompt  # Prompt is intentionally passed through stdin, never argv/process listings.
     sandbox = "workspace-write" if decision.agent in {"luna-worker", "terra-worker", "sol-owner"} else "read-only"
     command = [
-        "codex", "exec", "--strict-config", "-C", str(cwd), "-m", decision.model,
+        os.environ.get("YGT_CODEX_REAL", "/usr/local/bin/codex.real"), "exec", "--strict-config", "-C", str(cwd), "-m", decision.model,
         "-c", f'model_reasoning_effort="{decision.reasoning_effort}"',
         "-c", 'model_verbosity="low"', "-c", 'approval_policy="never"',
         "-c", f'features.multi_agent={str(decision.max_parallel_children > 0).lower()}',

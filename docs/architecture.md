@@ -46,6 +46,11 @@ already-open Sol session cannot retroactively become a direct Luna session.
 `scripts/route_exec.py` therefore performs deterministic local intake before
 `codex exec`, passes the prompt on stdin, and opens exactly one routed process.
 
+IDE extensions use the equivalent pre-inference boundary:
+`codex_entry_router.py` proxies app-server JSONL and rewrites only `turn/start`
+`model`/`effort` fields from user text. The native app-server remains protocol
+owner; the proxy makes no model call, network call, or prompt persistence.
+
 ## Context strategy
 
 Context tooling is selected independently from model and delegation. Serena is a

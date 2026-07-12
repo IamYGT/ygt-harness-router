@@ -158,6 +158,18 @@ startup. A five-sample matched benchmark found Luna slower but roughly 50%
 cheaper than Terra after applying the official model-specific cached/input/output
 credit rates. Routing optimizes priced credits first, then wall time.
 
+### CLI and IDE enforcement
+
+`scripts/codex_entry_router.py` is a transparent entry wrapper. For CLI it routes
+new `codex exec` prompts and gives a bare TUI the priced Luna default while
+passing management commands and explicit `--model` choices through unchanged.
+
+For VS Code/Cursor, configure `chatgpt.cliExecutable` to the wrapper. It proxies
+the app-server JSONL stream and injects routed `model` and `effort` values into
+each `turn/start` request before inference. Non-turn, malformed, image-only,
+stdout, stderr, and JSON-RPC traffic pass through unchanged. Context MCP selection
+remains static because MCP servers start before the first turn.
+
 ## First run
 
 Start with a bounded, observable task rather than a repository-wide rewrite:
